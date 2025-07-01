@@ -1,0 +1,53 @@
+# Byte-compiled / cache / logs
+__pycache__/
+*.py[cod]
+*.log
+*.tmp
+*.swp
+*.bak
+*.old
+*.orig
+
+# Kafka logs
+logs/
+*.log.*
+
+# Kafka site docs and tgz archives
+*.tgz
+site-docs/
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Editor/IDE
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# Docker
+*.pid
+*.pid.lock
+docker-compose.override.yml
+*.env
+.env.*
+
+# Kafka generated config overrides or runtime artifacts
+config/kraft/meta.properties
+data/
+tmp/
+*.lock
+
+# Ignore JARs if not maintained manually (optional)
+libs/
+
+# Python virtual envs
+venv/
+.env/
+ENV/
+env.bak/
+venv.bak/
+
+/kafka_2.13-3.6.1/bin
+/kafka_2.13-3.6.1/licenses
