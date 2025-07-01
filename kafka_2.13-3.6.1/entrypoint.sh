@@ -7,7 +7,6 @@ META_FILE="$LOG_DIR/meta.properties"
 
 if [ ! -f "$META_FILE" ]; then
     echo "Formatting storage for node $KAFKA_NODE_ID..."
-    CLUSTER_ID="QBnJSwRaSK2FXE91KbRAew=="
     echo "Using Cluster ID: $CLUSTER_ID"
     /opt/kafka/bin/kafka-storage.sh format -t "$CLUSTER_ID" -c "$CONFIG"
 fi

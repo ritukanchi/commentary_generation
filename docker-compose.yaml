@@ -1,0 +1,55 @@
+services:
+  kafka1:
+    image: bitnami/kafka:3.6.1
+    container_name: kafka1
+    environment:
+      - KAFKA_CFG_NODE_ID=1
+      - KAFKA_CFG_PROCESS_ROLES=broker,controller
+      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=1@kafka1:9093,2@kafka2:9093,3@kafka3:9093
+      - KAFKA_KRAFT_CLUSTER_ID=kraft-cluster
+      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
+    volumes:
+      - ./kafka_2.13-3.6.1/config/kraft/server1.properties:/bitnami/kafka/config/kraft.properties:ro,z
+    ports:
+      - "9092:9092"
+      - "9093:9093"
+    networks:
+      - kafka-net
+
+  kafka2:
+    image: bitnami/kafka:3.6.1
+    container_name: kafka2
+    environment:
+      - KAFKA_CFG_NODE_ID=2
+      - KAFKA_CFG_PROCESS_ROLES=broker,controller
+      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=1@kafka1:9093,2@kafka2:9093,3@kafka3:9093
+      - KAFKA_KRAFT_CLUSTER_ID=kraft-cluster
+      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
+    volumes:
+      - ./kafka_2.13-3.6.1/config/kraft/server2.properties:/bitnami/kafka/config/kraft.properties:ro,z
+    ports:
+      - "9192:9092"
+      - "9193:9093"
+    networks:
+      - kafka-net
+
+  kafka3:
+    image: bitnami/kafka:3.6.1
+    container_name: kafka3
+    environment:
+      - KAFKA_CFG_NODE_ID=3
+      - KAFKA_CFG_PROCESS_ROLES=broker,controller
+      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=1@kafka1:9093,2@kafka2:9093,3@kafka3:9093
+      - KAFKA_KRAFT_CLUSTER_ID=kraft-cluster
+      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
+    volumes:
+      - ./kafka_2.13-3.6.1/config/kraft/server3.properties:/bitnami/kafka/config/kraft.properties:ro,z
+    ports:
+      - "9292:9092"
+      - "9293:9093"
+    networks:
+      - kafka-net
+
+networks:
+  kafka-net:
+    driver: bridge
