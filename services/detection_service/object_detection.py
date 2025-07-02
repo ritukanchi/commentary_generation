@@ -4,17 +4,14 @@ import os
 import json
 import zipfile
 
-# === Paths ===
-FRAME_DIR = "/Users/rishitmahapatra/Documents/GitHub/commentary_generation/Datasets/frames"
-OUTPUT_DIR = "/Users/rishitmahapatra/Documents/GitHub/commentary_generation/Datasets/Object_detection_frames_with_metadata"
-OUTPUT_ZIP = "/Users/rishitmahapatra/Desktop/PROJECTS/Turboline_NLP_Bootcamp/PROJECT/Object_detection_frames_metadata.zip"
+FRAME_DIR = "/Datasets/frames"
+OUTPUT_DIR = "Datasets/Object_detection_frames_with_metadata"
+OUTPUT_ZIP = "Object_detection_frames_metadata.zip"
 
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-# === Load YOLO model ===
 model = YOLO("yolov8m.pt")
 
-# List frames
 frame_files = sorted([
     f for f in os.listdir(FRAME_DIR)
     if f.lower().endswith((".jpg", ".jpeg", ".png"))
@@ -27,20 +24,17 @@ for frame_file in frame_files:
     img = cv2.imread(img_path)
 
     if img is None:
-        print(f"⚠️ Could not read {img_path}")
+        print(f" Could not read {img_path}")
         continue
 
-    # Run detection
     results = model.predict(img, conf=0.3)
 
-    # Prepare lists for boxes and JSON
     boxes = []
     detections_json = []
 
     for box in results[0].boxes:
         cls_id = int(box.cls[0])
         if cls_id in [0, 32]:  # 0=person, 32=sports ball
-            # Save box for drawing
             boxes.append(box)
 
             # Save detection metadata
@@ -78,7 +72,6 @@ for frame_file in frame_files:
     out_path = os.path.join(OUTPUT_DIR, out_name)
     cv2.imwrite(out_path, annotated)
 
-    # Save JSON metadata
     json_name = f"obj_det_{os.path.splitext(frame_file)[0]}.json"
     json_path = os.path.join(OUTPUT_DIR, json_name)
     with open(json_path, "w") as f:
@@ -87,9 +80,8 @@ for frame_file in frame_files:
             "detections": detections_json
         }, f, indent=2)
 
-print("✅ Detection and metadata saving complete!")
+print("Detection and metadata saving complete!")
 
-# === Zip the output directory ===
 def zip_folder(folder_path, output_path):
     with zipfile.ZipFile(output_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
         for root, _, files in os.walk(folder_path):
@@ -97,6 +89,6 @@ def zip_folder(folder_path, output_path):
                 abs_path = os.path.join(root, file)
                 rel_path = os.path.relpath(abs_path, start=folder_path)
                 zipf.write(abs_path, rel_path)
-    print(f"✅ Zipped '{folder_path}' into '{output_path}'")
+    print(f" Zipped '{folder_path}' into '{output_path}'")
 
 zip_folder(OUTPUT_DIR, OUTPUT_ZIP)
