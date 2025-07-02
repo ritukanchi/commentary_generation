@@ -12,3 +12,5 @@ RUN chmod -R a+r /opt/kafka/config && \
     chmod +x /opt/kafka/entrypoint.sh /opt/kafka/bin/*.sh
     
 ENTRYPOINT ["/opt/kafka/entrypoint.sh"]
+
+
