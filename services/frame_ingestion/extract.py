@@ -6,12 +6,12 @@ def extract_frames(video_path, output_dir, fps=1):
     cap = cv2.VideoCapture(video_path)
 
     if not cap.isOpened():
-        print(f"❌ Failed to open video: {video_path}")
+        print(f" Failed to open video: {video_path}")
         return
 
     video_fps = cap.get(cv2.CAP_PROP_FPS)
     if video_fps == 0:
-        print("❌ Unable to get FPS from video.")
+        print("Unable to get FPS from video.")
         return
 
     interval = int(video_fps / fps)
@@ -31,22 +31,20 @@ def extract_frames(video_path, output_dir, fps=1):
         count += 1
 
     cap.release()
-    print(f"✅ Extracted {frame_index} frames from: {video_path}")
+    print(f"Extracted {frame_index} frames from: {video_path}")
 
 def batch_process_videos(root_dir, output_root):
     for root, dirs, files in os.walk(root_dir):
         for file in files:
             if file.endswith(".mkv"):
                 video_path = os.path.join(root, file)
-                # Create a unique output path based on video filename (without extension)
                 rel_path = os.path.relpath(video_path, root_dir)
                 rel_path_no_ext = os.path.splitext(rel_path)[0]
                 output_dir = os.path.join(output_root, rel_path_no_ext.replace(os.sep, "_"))
                 extract_frames(video_path, output_dir)
 
-# Example usage
 if __name__ == "__main__":
-    input_dir = "/mnt/c/Users/geets/Downloads/soccernet_videos/england_epl"  # Top-level dir
+    input_dir = "services/dataset/videos/soccernet_videos/england_epl"  
     output_dir = "./all_frames_output"
     batch_process_videos(input_dir, output_dir)
 
