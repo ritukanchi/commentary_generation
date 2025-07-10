@@ -1,0 +1,15 @@
+# milvus.yaml - minimal configuration for standalone mode
+etcd:
+  endpoints:
+    - etcd:2379
+
+minio:
+  address: minio
+  port: 9000
+  accessKeyID: minioadmin
+  secretAccessKey: minioadmin
+  useSSL: false
+  bucketName: "a-bucket"
+
+common:
+  storageType: minio

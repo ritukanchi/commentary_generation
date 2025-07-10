@@ -1,11 +1,11 @@
-# image_description.py
-
 import os
 import requests
 import json
 import time
 from dotenv import load_dotenv
 from tqdm import tqdm
+from datetime import datetime
+from kafka import KafkaProducer
 
 # Load credentials
 load_dotenv("../../.env")
@@ -14,6 +14,15 @@ CLOUD_NAME = os.getenv("CLOUDINARY_CLOUD_NAME")
 TURBOLINE_API_KEY = os.getenv("TURBOLINE_API_KEY")
 TURBOLINE_API_URL = os.getenv("TURBOLINE_API_URL")
 CLOUDINARY_UPLOAD_URL = f"https://api.cloudinary.com/v1_1/{CLOUD_NAME}/image/upload"
+
+# Kafka setup
+KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
+KAFKA_TOPIC = "frame-descriptions"
+
+producer = KafkaProducer(
+    bootstrap_servers=KAFKA_BOOTSTRAP_SERVERS,
+    value_serializer=lambda v: json.dumps(v).encode("utf-8")
+)
 
 
 def analyze_existing_frames(input_dir):
@@ -73,12 +82,20 @@ def analyze_existing_frames(input_dir):
                     if turbo_resp.status_code == 200:
                         try:
                             content = turbo_resp.json()["choices"][0]["message"]["content"]
-                            results.append({
-                                "frame_index": frame_index,
-                                "filename": file_name,
-                                "image_url": img_url,
-                                "description": content
-                            })
+
+                            detection_output = {
+                                "video_path": img_path,
+                                "frame_number": frame_index,
+                                "timestamp": datetime.now().isoformat(),
+                                "description": content,
+                                "processed_at": datetime.now().isoformat()
+                            }
+
+                            # Send to Kafka
+                            producer.send(KAFKA_TOPIC, detection_output)
+
+                            results.append(detection_output)
+
                         except Exception as parse_error:
                             print(f"Failed to parse TurboLine response for {file_name}: {parse_error}")
                     else:
@@ -95,6 +112,7 @@ def analyze_existing_frames(input_dir):
 
         frame_index += 1
 
+    producer.flush()
     end_time = time.time()
     elapsed = end_time - start_time
     fps = total_frames / elapsed if elapsed > 0 else 0
@@ -107,9 +125,8 @@ def save_descriptions(descriptions, output_txt_path):
     try:
         with open(output_txt_path, "w") as f:
             for item in descriptions:
-                f.write(f"[Frame {item['frame_index']}] {item['filename']}\n")
-                f.write(f"URL: {item['image_url']}\n")
-                f.write(f"Description:\n{item['description']}\n\n")
+                f.write(json.dumps(item, indent=2))
+                f.write("\n\n")
         print(f"All frame descriptions saved to: {output_txt_path}")
     except Exception as e:
         print(f"Failed to write descriptions to file: {e}")
