@@ -51,4 +51,13 @@ venv.bak/
 
 /kafka_2.13-3.6.1/bin
 /kafka_2.13-3.6.1/licenses
-/services/dataset
+- <<<<<<< new
+- /services/dataset
+- =======
+- services/frame_ingestion/.venv
+- .venv
+- >>>>>>> main
++ /services/dataset
++ services/frame_ingestion/.venv
++ .venv
+
