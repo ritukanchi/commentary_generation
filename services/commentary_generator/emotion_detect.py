@@ -6,23 +6,19 @@ from torch.nn.functional import softmax
 from tqdm import tqdm
 import os
 
-# --- CONFIG ---
 input_json_path = "data/captions_extracted/captions/train.caption_coco_format.json"
-output_csv_path = "data/emotions_train.csv"
+output_csv_path = "data/commentary_embeddings.csv"
 
-# --- Load model ---
 model_name = "joeddav/distilbert-base-uncased-go-emotions-student"
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 model = AutoModelForSequenceClassification.from_pretrained(model_name)
 model.eval()
 
-# --- Load captions from JSON ---
 with open(input_json_path, "r") as f:
     data = json.load(f)
 
 captions = [ann["caption"] for ann in data["annotations"]]
 
-# --- Predict emotions ---
 results = []
 batch_size = 16
 
@@ -44,7 +40,6 @@ for i in tqdm(range(0, len(captions), batch_size), desc="Processing Captions"):
             "confidence": round(conf.item(), 4)
         })
 
-# --- Save to CSV ---
 df = pd.DataFrame(results)
 os.makedirs(os.path.dirname(output_csv_path), exist_ok=True)
 df.to_csv(output_csv_path, index=False)
