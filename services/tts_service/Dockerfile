@@ -1,20 +1,32 @@
-FROM python:3.9-slim
+# Base image with Python
+FROM python:3.10-slim
 
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+# Create working directory
 WORKDIR /app
 
-# Install minimal system dependencies
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
-    libglib2.0-0 \
+    espeak \
+    ffmpeg \
+    libsndfile1 \
+    git \
+    curl \
+    build-essential \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
-RUN pip install --no-cache-dir kafka-python
+COPY requirements.txt .
+RUN pip install --upgrade pip && pip install -r requirements.txt
 
-# Copy application code
+# Copy app code
 COPY . .
 
-# Create output directory if not present (optional)
-RUN mkdir -p audio_output
+# Expose port if needed
+EXPOSE 8000
 
-# Run the TTS service
-CMD ["python", "main.py"]
+# Run service
+CMD ["python", "tts_services/main.py"]
