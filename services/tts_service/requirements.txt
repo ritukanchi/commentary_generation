@@ -1,0 +1,3 @@
+TTS
+kafka-python
+python-dotenv
