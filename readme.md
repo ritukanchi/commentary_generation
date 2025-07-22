@@ -7,7 +7,7 @@ This project is a real-time, AI-powered system that generates dynamic commentary
 * **Video Ingestion:** Process uploaded video files frame by frame.
 * **AI-powered Image Description:** Utilizes Turboline API to describe events in each frame.
 * **Event & Emotion Detection:** Identifies key moments and emotions (e.g., excitement, tension) from frame descriptions.
-* **AI-powered Commentary Generation:** Mistral LLM model used to craft human-like textual commentary based on detected events.
+* **AI-powered Commentary Generation:** Mistral small LLM model used to craft human-like textual commentary based on detected events.
 * **Text-to-Speech (TTS) Conversion:** Converts generated text commentary into spoken audio using Coqui TTS.
 * **Live Web Dashboard:** A Streamlit interface to upload videos, view live frame analysis, and listen to generated commentary.
 * **Scalable Architecture:** Built with Apache Kafka for robust and asynchronous communication between services.
