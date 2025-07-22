@@ -10,7 +10,6 @@ from pymilvus import (
 from dotenv import load_dotenv
 import logging
 
-# Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -34,7 +33,6 @@ class CommentaryVectorDB:
         self.is_connected = False
         
     def connect(self) -> bool:
-        """Connect to Milvus server with error handling"""
         try:
             connections.connect(
                 alias="default",
@@ -50,7 +48,6 @@ class CommentaryVectorDB:
             return False
     
     def _create_schema(self) -> CollectionSchema:
-        """Create optimized schema for commentary data"""
         fields = [
             FieldSchema(name="id", dtype=DataType.INT64, is_primary=True, auto_id=True),
             FieldSchema(name="commentary_text", dtype=DataType.VARCHAR, max_length=1000),
@@ -77,7 +74,6 @@ class CommentaryVectorDB:
                 logger.info(f"Dropping existing collection: {self.collection_name}")
                 utility.drop_collection(self.collection_name)
             
-            # Create new collection
             schema = self._create_schema()
             self.collection = Collection(
                 name=self.collection_name,
@@ -86,7 +82,6 @@ class CommentaryVectorDB:
                 shards_num=2
             )
             
-            # Create index for better search performance
             index_params = {
                 "metric_type": "L2",
                 "index_type": "IVF_FLAT",
@@ -121,17 +116,14 @@ class CommentaryVectorDB:
             df = pd.read_csv(csv_path)
             logger.info(f"Loaded {len(df)} rows from CSV")
             
-            # Prepare data
             texts = df[text_column].fillna("").astype(str).tolist()
             emotions = df[emotion_column].fillna("neutral").astype(str).tolist()
             contexts = df[context_column].fillna("") if context_column in df.columns else [""] * len(texts)
             contexts = pd.Series(contexts).astype(str).tolist()
             
-            # Generate embeddings
             logger.info("Generating embeddings...")
             embeddings = self.model.encode(texts, convert_to_numpy=True)
             
-            # Prepare timestamps
             timestamps = [int(pd.Timestamp.now().timestamp())] * len(texts)
             
             # Insert data
@@ -156,21 +148,18 @@ class CommentaryVectorDB:
     def search_similar_commentary(self, query_text: str, 
                                 emotion_filter: Optional[str] = None,
                                 top_k: int = 3) -> List[Dict[str, Any]]:
-        """Search for similar commentary with optional emotion filtering"""
         try:
-            # Generate query embedding
             query_embedding = self.model.encode([query_text])
             
-            # Build search expression
+            # build search expression
             expr = f"emotion == '{emotion_filter}'" if emotion_filter else None
             
-            # Search parameters
             search_params = {
                 "metric_type": "L2",
                 "params": {"nprobe": 10}
             }
             
-            # Perform search
+            # perform search
             results = self.collection.search(
                 data=query_embedding,
                 anns_field="embedding",
@@ -180,7 +169,7 @@ class CommentaryVectorDB:
                 output_fields=["commentary_text", "emotion", "context"]
             )
             
-            # Format results
+            # format results
             formatted_results = []
             for result in results[0]:
                 formatted_results.append({
@@ -188,7 +177,7 @@ class CommentaryVectorDB:
                     "emotion": result.entity.get("emotion"),
                     "context": result.entity.get("context"),
                     "distance": result.distance,
-                    "similarity_score": 1 / (1 + result.distance)  # Convert distance to similarity
+                    "similarity_score": 1 / (1 + result.distance) 
                 })
             
             return formatted_results
@@ -200,14 +189,12 @@ class CommentaryVectorDB:
     def get_contextual_commentary(self, scene_description: str, 
                                 detected_emotion: str, 
                                 top_k: int = 3) -> List[Dict[str, Any]]:
-        """Get contextual commentary for your pipeline"""
         results = self.search_similar_commentary(
             query_text=scene_description,
             emotion_filter=detected_emotion,
             top_k=top_k
         )
         
-        # If no results with emotion filter, try without
         if not results:
             results = self.search_similar_commentary(
                 query_text=scene_description,
@@ -217,7 +204,6 @@ class CommentaryVectorDB:
         return results
     
     def get_collection_stats(self) -> Dict[str, Any]:
-        """Get collection statistics"""
         try:
             stats = {
                 "total_entities": self.collection.num_entities,
@@ -231,7 +217,6 @@ class CommentaryVectorDB:
             return {}
 
 def main():
-    """Main function to set up and test the vector database"""
     load_dotenv()
     
     # Initialize database
@@ -241,7 +226,6 @@ def main():
         collection_name="commentary_embeddings"
     )
     
-    # Setup database
     if not db.connect():
         logger.error("Failed to connect to Milvus")
         return False

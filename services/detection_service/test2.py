@@ -13,3 +13,5 @@ cloudinary.config(
 
 result = cloudinary.uploader.upload("../dataset/frames/frametest/frame_0.jpg")
 print("Uploaded URL:", result["secure_url"])
+
+# testing of API 

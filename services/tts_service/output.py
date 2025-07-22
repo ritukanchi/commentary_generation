@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# another test file 
 import os
 import json
 import logging
@@ -12,7 +13,6 @@ logger = logging.getLogger(__name__)
 
 class TTSService:
     def __init__(self):
-        # Kafka setup
         self.consumer = KafkaConsumer(
             'commentary-text',
             bootstrap_servers=os.getenv('KAFKA_BOOTSTRAP_SERVERS', 'localhost:9092'),
@@ -25,15 +25,12 @@ class TTSService:
             value_serializer=lambda v: json.dumps(v).encode('utf-8')
         )
 
-        # Audio output directory inside container
         self.audio_output_dir = '/audio-output'
         os.makedirs(self.audio_output_dir, exist_ok=True)
 
-        # Load Tacotron2-DDC model
         self.tts = TTS(model_name="tts_models/en/ljspeech/tacotron2-DDC", progress_bar=False, gpu=False)
 
     def generate_tts_audio(self, text, emotion):
-        """Generate audio file using Coqui TTS Tacotron2-DDC"""
         try:
             timestamp = int(time.time())
             filename = f"commentary_{timestamp}_{emotion}.wav"
@@ -48,7 +45,6 @@ class TTSService:
             return None
 
     def process_commentary(self):
-        """Main processing loop"""
         logger.info("TTS service started...")
 
         for message in self.consumer:

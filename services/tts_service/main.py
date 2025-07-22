@@ -12,12 +12,13 @@ logger = logging.getLogger(__name__)
 
 class TTSService:
     def __init__(self):
-        # Kafka setup
+        # consumes shiz
         self.consumer = KafkaConsumer(
             'commentary-text',
             bootstrap_servers=os.getenv('KAFKA_BOOTSTRAP_SERVERS', 'localhost:9092'),
             value_deserializer=lambda m: json.loads(m.decode('utf-8')),
-            group_id='tts_service'
+            group_id='tts_service',
+            auto_offset_reset='earliest'
         )
 
         self.producer = KafkaProducer(
@@ -25,15 +26,14 @@ class TTSService:
             value_serializer=lambda v: json.dumps(v).encode('utf-8')
         )
 
-        # Audio output directory inside container
-        self.audio_output_dir = '/audio-output'
+        #  this is inside the container not mounted i think
+        self.audio_output_dir = '/app/audio_output'
         os.makedirs(self.audio_output_dir, exist_ok=True)
 
-        # Load Tacotron2-DDC model
+        # loading specific Tacotron2-DDC model, can be changed if you download another one 
         self.tts = TTS(model_name="tts_models/en/ljspeech/tacotron2-DDC", progress_bar=False, gpu=False)
 
     def generate_tts_audio(self, text, emotion):
-        """Generate audio file using Coqui TTS Tacotron2-DDC"""
         try:
             timestamp = int(time.time())
             filename = f"commentary_{timestamp}_{emotion}.wav"
@@ -48,7 +48,6 @@ class TTSService:
             return None
 
     def process_commentary(self):
-        """Main processing loop"""
         logger.info("TTS service started...")
 
         for message in self.consumer:

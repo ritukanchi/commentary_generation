@@ -1,3 +1,6 @@
+# generated file covering most stuff
+
+
 # Byte-compiled / cache / logs
 __pycache__/
 *.py[cod]
@@ -55,3 +58,8 @@ venv.bak/
 /services/dataset
 services/frame_ingestion/.venv
 
+/generated_commentary_json
+/config
+
+/shared_temp
+/services/shared

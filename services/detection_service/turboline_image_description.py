@@ -1,22 +1,21 @@
+# another test file for the turboline api testing
+
 import os
 import base64
 import requests
 import json
 from dotenv import load_dotenv
 
-# === Load credentials ===
 load_dotenv("../../.env")
 
 IMGBB_API_KEY = os.getenv("IMGBB_API_KEY")
 TURBOLINE_API_KEY = os.getenv("TURBOLINE_API_KEY")
 TURBOLINE_API_URL = os.getenv("TURBOLINE_API_URL")
 
-# === Frame Upload + Turboline ===
 def analyze_existing_frames(input_dir):
     results = []
     frame_index = 0
 
-    # Sort files for consistent order
     image_files = sorted([
         f for f in os.listdir(input_dir)
         if f.lower().endswith((".jpg", ".jpeg", ".png"))
@@ -25,11 +24,10 @@ def analyze_existing_frames(input_dir):
     for file_name in image_files:
         img_path = os.path.join(input_dir, file_name)
 
-        # Read and encode image
         with open(img_path, "rb") as img_file:
             encoded = base64.b64encode(img_file.read()).decode("utf-8")
 
-        # Upload to ImgBB
+        # ImgBB testing till website went out of whack so :(
         upload_resp = requests.post(
             "https://api.imgbb.com/1/upload",
             data={"key": IMGBB_API_KEY, "image": encoded}
@@ -37,9 +35,9 @@ def analyze_existing_frames(input_dir):
 
         if upload_resp.status_code == 200:
             img_url = upload_resp.json()["data"]["url"]
-            print(f"✅ Uploaded: {file_name} -> {img_url}")
+            print(f" Uploaded: {file_name} -> {img_url}")
 
-            # Request Turboline
+            # request to turboline
             payload = {
                 "messages": [
                     {
@@ -78,16 +76,15 @@ def analyze_existing_frames(input_dir):
                     "description": description
                 })
             else:
-                print(f"⚠️ Turboline API error: {turbo_resp.text}")
+                print(f"Turboline API error: {turbo_resp.text}")
 
         else:
-            print(f"⚠️ ImgBB upload error: {upload_resp.text}")
+            print(f" ImgBB upload error: {upload_resp.text}")
 
         frame_index += 1
 
     return results
 
-# === Save to text file ===
 def save_descriptions(descriptions, output_txt_path):
     with open(output_txt_path, "w") as f:
         for item in descriptions:
@@ -96,7 +93,6 @@ def save_descriptions(descriptions, output_txt_path):
             f.write(f"Description:\n{item['description']}\n\n")
     print(f"All frame descriptions saved to: {output_txt_path}")
 
-# === Entry ===
 if __name__ == "__main__":
     input_dir = "../../Datasets/all_frames_output"  
     output_txt = "../../Datasets/all_frames_desc.txt"

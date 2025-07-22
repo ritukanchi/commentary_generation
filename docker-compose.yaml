@@ -1,4 +1,4 @@
-version: "3.8"
+# Remove the version line entirely
 
 services:
   kafka1:
@@ -35,7 +35,7 @@ services:
     image: bitnami/kafka:3.6.1
     container_name: kafka2
     environment:
-      - KAFKA_KRAFT_CLUSTER_ID=${CLUSTER_ID} 
+      - KAFKA_KRAFT_CLUSTER_ID=${CLUSTER_ID}
       - KAFKA_CFG_NODE_ID=2
       - KAFKA_CFG_PROCESS_ROLES=controller,broker
       - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=1@kafka1:9093,2@kafka2:9093,3@kafka3:9093
@@ -55,7 +55,7 @@ services:
     volumes:
       - kafka2_data:/bitnami/kafka
     depends_on:
-      - kafka1  # ← SIMPLIFIED DEPENDENCY
+      - kafka1
     healthcheck:
       test: ["CMD-SHELL", "kafka-topics.sh --bootstrap-server localhost:9092 --list || exit 1"]
       interval: 30s
@@ -67,7 +67,7 @@ services:
     image: bitnami/kafka:3.6.1
     container_name: kafka3
     environment:
-      - KAFKA_KRAFT_CLUSTER_ID=${CLUSTER_ID}  
+      - KAFKA_KRAFT_CLUSTER_ID=${CLUSTER_ID}
       - KAFKA_CFG_NODE_ID=3
       - KAFKA_CFG_PROCESS_ROLES=controller,broker
       - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=1@kafka1:9093,2@kafka2:9093,3@kafka3:9093
@@ -88,81 +88,13 @@ services:
       - kafka3_data:/bitnami/kafka
     depends_on:
       - kafka1
-      - kafka2  # ← SIMPLIFIED DEPENDENCY
+      - kafka2
     healthcheck:
       test: ["CMD-SHELL", "kafka-topics.sh --bootstrap-server localhost:9092 --list || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
       start_period: 90s
-
-
-  etcd:
-    container_name: milvus-etcd
-    image: quay.io/coreos/etcd:v3.5.5
-    environment:
-      - ETCD_AUTO_COMPACTION_MODE=revision
-      - ETCD_AUTO_COMPACTION_RETENTION=1000
-      - ETCD_QUOTA_BACKEND_BYTES=4294967296
-      - ETCD_SNAPSHOT_COUNT=50000
-    volumes:
-      - etcd_data:/etcd
-    command: etcd -advertise-client-urls=http://127.0.0.1:2379 -listen-client-urls http://0.0.0.0:2379 --data-dir /etcd
-    networks:
-      - milvus-net
-    healthcheck:
-      test: ["CMD", "etcdctl", "endpoint", "health"]
-      interval: 30s
-      timeout: 20s
-      retries: 3
-
-  minio:
-    container_name: milvus-minio
-    image: minio/minio:RELEASE.2023-03-20T20-16-18Z
-    environment:
-      MINIO_ACCESS_KEY: minioadmin
-      MINIO_SECRET_KEY: minioadmin
-    ports:
-      - "9001:9001"
-      - "9000:9000"
-    volumes:
-      - minio_data:/minio_data
-    command: minio server /minio_data --console-address ":9001"
-    networks:
-      - milvus-net
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
-      interval: 30s
-      timeout: 20s
-      retries: 3
-
-  milvus:
-    container_name: milvus-standalone
-    image: milvusdb/milvus:v2.3.11
-    command: ["milvus", "run", "standalone"]
-    environment:
-      ETCD_ENDPOINTS: etcd:2379
-      MINIO_ADDRESS: minio:9000
-    volumes:
-      - milvus_data:/var/lib/milvus
-      - ./milvus.yaml:/milvus/configs/milvus.yaml
-    ports:
-      - "19530:19530"
-      - "9091:9091"
-    depends_on:
-      etcd:
-        condition: service_healthy
-      minio:
-        condition: service_healthy
-    networks:
-      - milvus-net
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9091/healthz"]
-      interval: 30s
-      timeout: 20s
-      retries: 5
-    security_opt:
-      - seccomp:unconfined
 
   kafka-setup:
     image: bitnami/kafka:3.6.1
@@ -182,29 +114,102 @@ services:
       bash -c "
         echo 'Waiting for Kafka to be ready...'
         sleep 30
-
+        
         echo 'Creating topics...'
+        kafka-topics.sh --bootstrap-server kafka1:9092 --create --topic video-processing-requests --partitions 3 --replication-factor 3 --if-not-exists
         kafka-topics.sh --bootstrap-server kafka1:9092 --create --topic video-frames --partitions 3 --replication-factor 3 --if-not-exists
         kafka-topics.sh --bootstrap-server kafka1:9092 --create --topic frame-descriptions --partitions 3 --replication-factor 3 --if-not-exists
         kafka-topics.sh --bootstrap-server kafka1:9092 --create --topic emotion-events --partitions 3 --replication-factor 3 --if-not-exists
         kafka-topics.sh --bootstrap-server kafka1:9092 --create --topic commentary-text --partitions 3 --replication-factor 3 --if-not-exists
         kafka-topics.sh --bootstrap-server kafka1:9092 --create --topic audio-output --partitions 3 --replication-factor 3 --if-not-exists
-
+        
         echo 'Topics created successfully!'
         kafka-topics.sh --bootstrap-server kafka1:9092 --list
       "
     restart: "no"
 
+  streamlit-dashboard:
+    build: ./services/streamlit_dashboard
+    ports:
+      - "8501:8501"
+    depends_on:
+      - kafka-setup
+    networks:
+      - kafka-net
+    environment:
+      - KAFKA_BOOTSTRAP_SERVERS=kafka1:9092,kafka2:9092,kafka3:9092
+    volumes:
+      - ./services/dataset:/app/dataset
+      - ./shared_temp:/app/shared_temp:Z  
+      - tts_audio_output:/app/audio_output
+      - ./services/shared:/app/services/shared
+    user: "1000:1000"
+
+  frame-ingestion:
+    build: ./services/frame_ingestion
+    depends_on:
+      - kafka-setup
+    networks:
+      - kafka-net
+    environment:
+      - KAFKA_BOOTSTRAP_SERVERS=kafka1:9092,kafka2:9092,kafka3:9092
+    volumes:
+      - ./services/dataset:/app/dataset
+      - ./shared_temp:/app/shared_temp:Z  
+    user: "1000:1000"
+
+  detection-service:
+    build: ./services/detection_service
+    depends_on:
+      - kafka-setup
+    networks:
+      - kafka-net
+    environment:
+      - KAFKA_BOOTSTRAP_SERVERS=kafka1:9092,kafka2:9092,kafka3:9092
+      - CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME}
+      - TURBOLINE_API_KEY=${TURBOLINE_API_KEY}
+      - TURBOLINE_API_URL=${TURBOLINE_API_URL}
+
+  eventlogic:
+    build: ./services/eventlogic
+    depends_on:
+      - kafka-setup
+    networks:
+      - kafka-net
+    environment:
+      - KAFKA_BOOTSTRAP_SERVERS=kafka1:9092,kafka2:9092,kafka3:9092
+
+  commentary-generator:
+    build: ./services/commentary_generator
+    depends_on:
+      - kafka-setup
+    networks:
+      - kafka-net
+    environment:
+      - KAFKA_BOOTSTRAP_SERVERS=kafka1:9092,kafka2:9092,kafka3:9092
+      - MISTRAL_API_KEY=${MISTRAL_API_KEY}
+    volumes:
+      - ./services/dataset:/app/dataset
+      - ./generated_commentary_json:/app/tts_outputs
+
+  tts-service:
+    build: ./services/tts_service
+    depends_on:
+      - kafka-setup
+    networks:
+      - kafka-net
+    environment:
+      - KAFKA_BOOTSTRAP_SERVERS=kafka1:9092,kafka2:9092,kafka3:9092
+    volumes:
+      - ./services/dataset:/app/dataset
+      - tts_audio_output:/app/audio_output
+
 volumes:
   kafka1_data:
   kafka2_data:
   kafka3_data:
-  etcd_data:
-  minio_data:
-  milvus_data:
+  tts_audio_output:
 
 networks:
   kafka-net:
-    driver: bridge
-  milvus-net:
     driver: bridge

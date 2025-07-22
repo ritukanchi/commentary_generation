@@ -14,7 +14,9 @@ class EventLogicService:
             'frame-descriptions',
             bootstrap_servers=os.getenv('KAFKA_BOOTSTRAP_SERVERS', 'localhost:9092'),
             value_deserializer=lambda m: json.loads(m.decode('utf-8')),
-            group_id='event_logic_service'
+            group_id='event_logic_service',
+            auto_offset_reset='earliest'
+
         )
         
         self.producer = KafkaProducer(
@@ -23,7 +25,8 @@ class EventLogicService:
         )
         
     def detect_emotion(self, description):
-        """Detect emotion from description"""
+        # predefined set of emotions that we defined then compressed from the new.ipynb under detection_service since 
+        # that list was too exhaustive, tried to make a temporary bracket if the milvus did not work 
         emotions = {
             'excitement': ['goal', 'celebrating', 'cheering', 'spectacular', 'amazing', 'incredible'],
             'tension': ['save', 'block', 'defense', 'pressure', 'intense', 'crucial'],
@@ -42,11 +45,9 @@ class EventLogicService:
         return 'neutral'
         
     def calculate_confidence(self, description, emotion):
-        """Calculate confidence score for emotion detection"""
-        return 0.85  # Placeholder confidence
+        return 0.85  # placeholder 
 
     def process_descriptions(self):
-        """Process descriptions and detect emotions"""
         logger.info("Event Logic Service started")
         
         for message in self.consumer:
@@ -57,7 +58,6 @@ class EventLogicService:
                 emotion = self.detect_emotion(description)
                 confidence = self.calculate_confidence(description, emotion)
                 
-                # Re-ordered to match canonical format
                 emotion_message = {
                     'video_path': description_data['video_path'],
                     'frame_number': description_data['frame_number'],

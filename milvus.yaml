@@ -1,4 +1,4 @@
-# milvus.yaml - minimal configuration for standalone mode
+# milvus.yaml - minimal configuration for standalone mode, not in use currently
 etcd:
   endpoints:
     - etcd:2379

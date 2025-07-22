@@ -1,10 +1,159 @@
+# Video Commentary Generation Pipeline (Football)
 
-# pip install -r requirements.txt
+This project is a real-time, AI-powered system that generates dynamic commentary (text and audio) for sports videos. It uses a series of interconnected microservices, orchestrated with Docker and Apache Kafka, to analyze video frames and produce engaging narration.
 
-# docker compose but modify the dockerfiles present in various locations according to your machine 
+## Features
 
-# docker compose up (and build, look it up theres a process specify that it has a .yaml file and dockerfiles in different repositories/folders)
+* **Video Ingestion:** Process uploaded video files frame by frame.
+* **AI-powered Image Description:** Utilizes Turboline API to describe events in each frame.
+* **Event & Emotion Detection:** Identifies key moments and emotions (e.g., excitement, tension) from frame descriptions.
+* **AI-powered Commentary Generation:** Mistral LLM model used to craft human-like textual commentary based on detected events.
+* **Text-to-Speech (TTS) Conversion:** Converts generated text commentary into spoken audio using Coqui TTS.
+* **Live Web Dashboard:** A Streamlit interface to upload videos, view live frame analysis, and listen to generated commentary.
+* **Scalable Architecture:** Built with Apache Kafka for robust and asynchronous communication between services.
 
-# you should have all 3 nodes up and running, ensure that the data paths are all under services/dataset/ etc. 
+---
 
+## Getting Started
+
+This project runs entirely using Docker. You only need to install Docker and set up your API keys.
+
+### Prerequisites
+
+* **Docker Desktop (for Windows and macOS):** Download and install Docker Desktop, ensure Docker Desktop is running before proceeding.
+* **Docker Engine & Docker Compose (for Linux):** Post configuring docker, ensure the Docker daemon is running.
+
+### Setup Steps
+
+1.  **Clone the Repository:**
+    ```bash
+    git clone https://github.com/ritukanchi/commentary_generation.git
+    cd commentary_generation
+    ```
+
+2.  **Create your `.env` File:**
+    This project requires API keys for external AI services. Create a file named `.env` in the root of this project directory.
+
+    Paste the following content into your new `.env` file and **replace the placeholder values** with your actual API keys:
+
+    ```env
     
+    CLUSTER_ID=
+
+    CLOUDINARY_CLOUD_NAME=
+
+    TURBOLINE_API_KEY=
+    TURBOLINE_API_URL=
+
+    MISTRAL_API_KEY=
+
+    # as it is 
+    KAFKA_TOPIC_FRAMES=video-frames
+    KAFKA_TOPIC_DESCRIPTIONS=frame-descriptions
+    KAFKA_TOPIC_EMOTIONS=emotion-events
+    KAFKA_TOPIC_COMMENTARY=commentary-text
+    KAFKA_TOPIC_AUDIO=audio-output
+    MILVUS_HOST=localhost
+    MILVUS_PORT=19530
+    ```
+    * You will need accounts with Cloudinary, Turboline, and Mistral AI to obtain these keys.
+
+3.  **Create Shared Directories:**
+    These directories are used for sharing files between Docker containers and your host machine.
+    ```bash
+    mkdir -p shared_temp services/dataset generated_commentary_json
+    ```
+
+4.  **Set File Permissions (Linux Users - Crucial for Fedora/SELinux):**
+    This step ensures Docker containers have the necessary permissions to read from and write to the shared folders on your host. If you're on Windows or macOS, Docker Desktop handles most of this, so you can likely skip this.
+
+    ```bash
+    # Set ownership of the shared folders to your current user and group
+    sudo chown -R $(whoami):$(whoami) shared_temp services/dataset generated_commentary_json
+
+  
+    chmod -R 775 shared_temp services/dataset generated_commentary_json
+
+    # For Fedora users with SELinux (highly recommended step):
+    sudo chcon -Rt svirt_sandbox_file_t shared_temp services/dataset generated_commentary_json
+    ```
+    * `$(whoami)` will automatically insert your current username.
+
+---
+
+## Running the Project
+
+
+
+1.  **Build and Start All Services:**
+    This command builds the Docker images
+
+    ```bash
+    docker compose up --build -d
+    ```
+
+2.  **Monitor Logs (Optional but Recommended):**
+    ```bash
+    docker compose logs -f
+    ```
+
+---
+
+## Accessing the Dashboard
+
+Once all services have started and Kafka becomes healthy (this might take a few minutes for the entire cluster to spin up and AI models to load), you can access the Streamlit dashboard:
+
+* Open your browser and go to: **`http://localhost:8501`**
+
+---
+
+## Stopping & Clearing Data
+
+### Stopping All Services
+
+To stop all running Docker containers gracefully (keeps persistent data):
+
+```bash
+docker compose down
+````
+
+### Clearing All Persistent Data for a Fresh Start
+
+If you want to completely reset the project, clearing all Kafka messages, saved frames, generated JSONs, and audio files, follow these steps. This is useful if you want to test from a truly clean slate.
+
+1.  **Stop all Docker Compose services:**
+
+    ```bash
+    docker compose down
+    ```
+
+2.  **Remove Kafka's data volumes:**
+    This deletes all messages stored by the Kafka brokers, including consumer offsets.
+
+    ```bash
+    docker volume rm commentary_generation_kafka1_data \
+                     commentary_generation_kafka2_data \
+                     commentary_generation_kafka3_data
+    ```
+
+3.  **Remove the generated audio data volume:**
+    This clears all `.wav` audio files generated by the TTS service.
+
+    ```bash
+    docker volume rm commentary_generation_tts_audio_output
+    ```
+
+4.  **Clear local shared directories:**
+    This removes uploaded videos, extracted frames, and generated commentary JSON files.
+
+    ```bash
+    rm -rf shared_temp/*
+    rm -rf services/dataset/*
+    rm -rf generated_commentary_json/*
+    ```
+
+      * **Caution:** Ensure you run these `rm -rf` commands from the project's root directory (`commentary_generation/`) to avoid deleting unintended files.
+
+After running these commands, you can go back to the "Running the Project" section (`docker compose up --build -d`) to start with a completely fresh environment.
+
+-----

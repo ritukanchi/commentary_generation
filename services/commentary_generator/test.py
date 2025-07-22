@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# not important dummy test file 
 import os
 import json
 import requests
@@ -6,14 +7,11 @@ from datetime import datetime
 from dotenv import load_dotenv
 
 load_dotenv()
-# CONFIGURATION
 MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY")
 OUTPUT_DIR = os.getenv("TTS_OUTPUT_DIR", "./tts_test_outputs")
 
 def generate_commentary(description, emotion, context=""):
-    """
-    Call Mistral API to generate commentary
-    """
+
     url = "https://api.mistral.ai/v1/chat/completions"
 
     headers = {
@@ -46,9 +44,7 @@ def generate_commentary(description, emotion, context=""):
         return f"Simple fallback commentary. Description: {description}"
 
 def save_commentary_json(input_data, commentary):
-    """
-    Save the commentary to JSON file
-    """
+ 
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     filename = f"commentary_frame_test.json"
     filepath = os.path.join(OUTPUT_DIR, filename)
@@ -68,17 +64,14 @@ def save_commentary_json(input_data, commentary):
     print(f"Saved commentary JSON to {filepath}")
 
 def main():
-    # Load your input JSON here
     input_file = "../../Datasets/event_comm_gen.json"
 
     with open(input_file, "r", encoding="utf-8") as f:
-        input_data = json.load(f)[0]  # take the first item in the list
-
+        input_data = json.load(f)[0]  
 
     description = input_data["description"]
     emotion = input_data["predicted_emotion"]
 
-    # No retrieved context examples for test
     context = "- Example 1\n- Example 2\n- Example 3"
 
     commentary = generate_commentary(description, emotion, context)
